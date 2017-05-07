@@ -30,30 +30,32 @@ class elisaviihde:
     self.checkrequest(init.status_code)
   
   def login(self, username, password):
-    # Get sso auth token
-    if self.verbose: print "Getting single-sign-on token..."
-    token = self.session.post(self.baseurl + "/api/sso/authcode",
-                              data={"username": username},
-                              headers={"Content-type": "application/x-www-form-urlencoded; charset=UTF-8",
-                                       "X-Requested-With": "XMLHttpRequest"},
-                              verify=self.verifycerts)
-    self.checkrequest(token.status_code)
-    try:
-      self.authcode = token.json()["code"]
-    except ValueError as err:
-      raise Exception("Could not fetch sso token", err)
-    
-    # Login with token
-    if self.verbose: print "Logging in with single-sign-on token..."
-    login = self.session.post(self.ssobaseurl + "/sso/login",
-                              data=json.dumps({"accountId": username,
-                                               "password": password,
-                                               "authCode": self.authcode,
-                                               "suppressErrors": True}),
-                              headers={"Content-type": "application/json; charset=UTF-8",
-                                       "Origin": self.baseurl},
-                              verify=self.verifycerts)
-    self.checkrequest(login.status_code)
+    # Token authorization commented out since it was broken (does not succeed)
+    # Using username/pwd instead
+    # # Get sso auth token
+    # if self.verbose: print "Getting single-sign-on token..."
+    # token = self.session.post(self.baseurl + "/api/sso/authcode",
+    #                          data={"username": username},
+    #                          headers={"Content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+    #                                   "X-Requested-With": "XMLHttpRequest"},
+    #                          verify=self.verifycerts)
+    #self.checkrequest(token.status_code)
+    #try:
+    #  self.authcode = token.json()["code"]
+    #except ValueError as err:
+    #  raise Exception("Could not fetch sso token", err)
+    #
+    ## Login with token
+    #if self.verbose: print "Logging in with single-sign-on token..."
+    #login = self.session.post(self.ssobaseurl + "/sso/login",
+    #                          data=json.dumps({"accountId": username,
+    #                                           "password": password,
+    #                                           "authCode": self.authcode,
+    #                                           "suppressErrors": True}),
+    #                          headers={"Content-type": "application/json; charset=UTF-8",
+    #                                   "Origin": self.baseurl},
+    #                          verify=self.verifycerts)
+    #self.checkrequest(login.status_code)
     
     # Login with username and password
     if self.verbose: print "Logging in with username and password..."
