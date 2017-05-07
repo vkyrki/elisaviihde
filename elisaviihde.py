@@ -10,6 +10,7 @@ class elisaviihde:
   # Init args
   verbose = False
   baseurl = "https://elisaviihde.fi"
+  apiurl = "https://api.elisaviihde.fi"
   ssobaseurl = "https://id.elisa.fi"
   session = None
   authcode = None
@@ -30,32 +31,14 @@ class elisaviihde:
     self.checkrequest(init.status_code)
   
   def login(self, username, password):
-    # Token authorization commented out since it was broken (does not succeed)
-    # Using username/pwd instead
-    # # Get sso auth token
-    # if self.verbose: print "Getting single-sign-on token..."
-    # token = self.session.post(self.baseurl + "/api/sso/authcode",
-    #                          data={"username": username},
-    #                          headers={"Content-type": "application/x-www-form-urlencoded; charset=UTF-8",
-    #                                   "X-Requested-With": "XMLHttpRequest"},
-    #                          verify=self.verifycerts)
-    #self.checkrequest(token.status_code)
-    #try:
-    #  self.authcode = token.json()["code"]
-    #except ValueError as err:
-    #  raise Exception("Could not fetch sso token", err)
-    #
-    ## Login with token
-    #if self.verbose: print "Logging in with single-sign-on token..."
-    #login = self.session.post(self.ssobaseurl + "/sso/login",
-    #                          data=json.dumps({"accountId": username,
-    #                                           "password": password,
-    #                                           "authCode": self.authcode,
-    #                                           "suppressErrors": True}),
-    #                          headers={"Content-type": "application/json; charset=UTF-8",
-    #                                   "Origin": self.baseurl},
-    #                          verify=self.verifycerts)
-    #self.checkrequest(login.status_code)
+    # Login using api.elisaviihde.fi
+    loginreq = self.session.post(self.apiurl + "/etvrecorder/login.sl&ajax",
+                                 data={"username": username,
+                                       "password": password},
+                             headers={"Content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+                                      "X-Requested-With": "XMLHttpRequest"},
+                             verify=self.verifycerts)
+    self.checkrequest(loginreq.status_code)
     
     # Login with username and password
     if self.verbose: print "Logging in with username and password..."
@@ -214,11 +197,13 @@ class elisaviihde:
     # Parse recording stream uri for program
     self.checklogged()
     if self.verbose: print "Getting stream uri info..."
-    uridata = self.session.get(self.baseurl + "/tallenteet/katso/" + str(programid), verify=self.verifycerts)
+    uridata = self.session.get("https://api.elisaviihde.fi/etvrecorder/program.sl?programid=" + str(programid) + "&ajax", 
+                               verify=self.verifycerts)
     self.checkrequest(uridata.status_code)
-    for line in uridata.text.split("\n"):
-      if "data-url" in line:
-        return re.findall('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', line)[0]
+    programinfo = uridata.json()
+    if programinfo["url"]==None:
+      raise Exception("Could not read program URL, log in unsuccessful?")
+    return programinfo["url"]
 
   def markwatched(self, programid=0):
     # Mark recording as watched
