@@ -10,6 +10,7 @@ class elisaviihde:
   # Init args
   verbose = False
   baseurl = "https://elisaviihde.fi"
+  apiurl = "https://api.elisaviihde.fi"
   ssobaseurl = "https://id.elisa.fi"
   session = None
   authcode = None
