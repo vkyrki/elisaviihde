@@ -47,11 +47,19 @@ def main():
     sys.exit(1)
     
   allfolders = elisa.getallfolders()
-  
-  if verbose:
-    for folder in allfolders: print folder["name"]
-    
-  allrecordings = elisa.getallrecordings()
+
+  with open("folder_data.pkl", "wb") as output:
+    pickle.dump(allfolders, output, pickle.HIGHEST_PROTOCOL)
+
+  allrecordings = []
+
+  for folder in allfolders:
+    print "Read recordings from folder " + folder["name"]
+    recordings = elisa.getrecordings(folder["id"])
+    for rec in recordings:
+      rec["folderid"] = folder["id"]
+    allrecordings += recordings
+
   print str(len(allrecordings)) + " recordings total."
 
   with open("recording_data.pkl", "wb") as output:
