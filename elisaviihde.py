@@ -19,6 +19,7 @@ class elisaviihde:
   verifycerts = False
   
   def __init__(self, verbose=False):
+    #    urllib3.disable_warnings()
     # Init session to store cookies
     self.verbose = verbose
     self.session = requests.Session()
@@ -29,7 +30,9 @@ class elisaviihde:
     
     init = self.session.get(self.baseurl + "/", verify=self.verifycerts)
     self.checkrequest(init.status_code)
-  
+
+    # disable warnings for unverified https requests
+    
   def login(self, username, password):
     # Login using api.elisaviihde.fi
     loginreq = self.session.post(self.apiurl + "/etvrecorder/login.sl&ajax",
@@ -124,7 +127,15 @@ class elisaviihde:
                                verify=self.verifycerts)
     self.checkrequest(folders.status_code)
     return [folder for folder in self.walk(folders.json()) if folder["parentFolder"] == folderid]
-  
+
+  def getallfolders(self):
+    self.checklogged()
+    folders = self.session.get(self.baseurl + "/tallenteet/api/folders",
+                               headers={"X-Requested-With": "XMLHttpRequest"},
+                               verify=self.verifycerts)
+    self.checkrequest(folders.status_code)
+    return [folder for folder in self.walk(folders.json())]
+    
   def getfolderstatus(self, folderid=0):
     # Get folder info
     if self.verbose: print "Getting folder info..."
@@ -134,7 +145,16 @@ class elisaviihde:
                                verify=self.verifycerts)
     self.checkrequest(folder.status_code)
     return folder.json()
-  
+
+  def getallrecordings(self, sortby="startTime", sortorder="desc", status="all"):
+    self.checklogged()
+    recordings = []
+    allfolders = self.getallfolders()
+
+    for folder in allfolders:
+      recordings += self.getrecordings(folder["id"])
+    return recordings
+    
   def getrecordings(self, folderid=0, page=None, sortby="startTime", sortorder="desc", status="all"):
     # Get recordings from folder
     self.checklogged()
