@@ -28,9 +28,8 @@ def main():
       assert False, "unhandled option"
   
   # Ask password securely on command line
-  #password = getpass.getpass('Password: ')
-  password = "leevi3008"
-  
+  password = getpass.getpass('Password: ')
+    
   # Init elisa session
   try:
     elisa = elisaviihde.elisaviihde(verbose)
