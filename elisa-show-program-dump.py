@@ -1,12 +1,38 @@
-import re, sys
+import re, sys, getopt
 import cPickle as pickle
 
 def main():
+  # parse command line
+  folderid = None
+  outfile = None
+  of = None
+  
+  try:
+    opts, args = getopt.getopt(sys.argv[1:], "f:o:")
+  except getopt.GetoptError as err:
+    print "ERROR:", str(err)
+    sys.exit(2)
+    
+  for o, a in opts:
+    if o == "-f":
+      folderid = a
+    elif o == "-o":
+      outfile = a
+    else:
+      assert False, "unhandled option"
+      
   with open("recording_data.pkl", "rb") as input:
     allrecordings = pickle.load(input)
 
+  if outfile:
+    of = open(outfile, "w")
+        
   totaltime = 0
   for rec in allrecordings:
+    if folderid:
+      if str(rec["folderId"]) <> folderid:
+        continue
+      
     totaltime += rec["duration"]
     try:
       kausi = None
@@ -23,23 +49,17 @@ def main():
             if m:
               kausi = m.group(1)
 
-#      if "kauden" in rec["description"]: print rec["description"]
-#      if "Kauden" in rec["description"]: print rec["description"]
-              
       jakso = None
       if "/" in rec["description"]:
         m = re.search("([0-9]+) ?/([0-9]+)", rec["description"])
         if m:
           if m.group(2)>2:
             jakso = m.group(1)
-#          else:
-#            print "J " + jakso + " / " + m.group(2)
       if "osa" in rec["description"]:
         m = re.search("osa ([0-9]+)", rec["description"])
         if m:
             jakso = m.group(1)
 
-#      if kausi and not jakso: print rec["description"]
       pv = None
       m = re.search("(\d+)\.(\d+)\.(\d+)", rec["startTime"])
       if m:
@@ -54,11 +74,16 @@ def main():
 
       filename = re.sub(' ','_',filename)
       filename = re.sub('_+','_',filename)
-      
-      print filename
+
+      rec["filename"] = filename
+
+      print str(rec["programId"]) + ": " + filename
+      if of: print >> of,  str(rec["programId"]) + ": " + filename
     except KeyError:
       continue
-    
+
+  if of: of.close()
+  
   print "Total duration " + str(totaltime) + " sec (" + str(totaltime/60) + " min = " + str(totaltime/3600) + " hr)"
 
 if __name__ == "__main__":
