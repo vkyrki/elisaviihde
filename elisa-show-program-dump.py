@@ -51,6 +51,9 @@ def main():
       if kausi and jakso: filename += "_K" + kausi + "J" + jakso.zfill(2)
       if not kausi and jakso: filename += "_J" + jakso.zfill(2) 
       if pv: filename += "_" + vvvv + kk + pv
+
+      filename = re.sub(' ','_',filename)
+      filename = re.sub('_+','_',filename)
       
       print filename
     except KeyError:
