@@ -1,4 +1,5 @@
 import getopt, sys, getpass, elisaviihde, os, re
+import cPickle as pickle
 from subprocess import call
 
 def main():
@@ -16,6 +17,8 @@ def main():
   username = ""
   listfile = None
   verbose = False
+
+  datadir = "/home/vkyrki/git/elisaviihde/"
   
   # Read arg data
   for o, a in opts:
@@ -34,7 +37,10 @@ def main():
     input = open(listfile,"r")
   except Exception as err:
     print "ERROR: Opening listfile failed, " + err
-      
+
+  with open(datadir + "recording_data.pkl", "rb") as input_data:
+    allrecordings = pickle.load(input_data)
+   
   # Ask password securely on command line
   password = getpass.getpass('Password: ')
     
@@ -45,36 +51,63 @@ def main():
     print "ERROR: Could not create elisa session"
     sys.exit(1)
     
-  # Login
-  try:
-    elisa.login(username, password)
-  except Exception as exp:
-    print "ERROR: Login failed, check username and password"
-    sys.exit(1)
-
   for text in input:  
+
+    # Login
+    try:
+      elisa.login(username, password)
+    except Exception as exp:
+      print "ERROR: Login failed, check username and password"
+      sys.exit(1)
 
     match = re.match('^(\d+)\: (.+)',text)
   
-    if match:
-      print match.group(1) + " " + match.group(2)
+    if not match:
+      continue;
+
+    if verbose: print match.group(1) + " " + match.group(2)
 
     programId = match.group(1)
     outfilename = match.group(2)
+
+    try:
+      prog = next(x for x in allrecordings if x["programId"]==int(programId))
+    except StopIteration as exp:
+      print str(programId) + ": " + outfilename + " not found in database"
+      continue
+
+    print "Processing " + programId + ", " + prog["name"]
+    deinterlace = "" # "-vf yadif=0 "
+    subtitles = ""
+
+    if re.match('Yle', prog["channel"]):
+      subtitles = '-filter_complex "[0:v][0:s]overlay" '
+      print "From YLE channel " + prog["channel"] + ", burning subtitles"
+      
+    try:
+      streamuri = elisa.getstreamuri(programId)
+    except Exception as exp:
+      print "Stream not found, skipping"
+      continue
+
+    # input stream and codec options
+    callstr = 'ffmpeg -i "' + streamuri + '" ' + subtitles + '-c:v libx264 -preset medium -crf 22 -c:a aac -strict experimental -sn -loglevel fatal '
+    # possible deinterlace plus description metadata
+    callstr = callstr + deinterlace + '-metadata description="' + prog["description"] + '" '
+    # title metadata    
+    callstr = callstr + '-metadata title="' + outfilename.decode("utf8") + '" '
+    # output filename (&type)
+    callstr = callstr + '"' + outfilename.decode("utf8") + '.mkv"'
+
+    #print callstr
+    print "Starting encoding"
     
-    streamuri = elisa.getstreamuri(programId)
+    call(callstr, shell=True)
 
-    print "Found stream uri from recording " + str(programId) + ":"
-    print streamuri
-  
-    callstr = 'ffmpeg -i "' + streamuri + '" -c:v libx264 -preset medium -crf 20 -c:a copy -sn "' + outfilename + '.mkv"'
+    # Close session (new one opened for each file)
+    elisa.close()
 
-    print callstr
-
-    # call(callstr, shell=True)
-  
-  # Close session
-  elisa.close()
+  # All files downloaded
 
 if __name__ == "__main__":
   main()
