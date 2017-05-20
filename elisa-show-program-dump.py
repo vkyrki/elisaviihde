@@ -1,6 +1,8 @@
 import re, sys, getopt
 import cPickle as pickle
 
+import codecs
+
 def main():
   # parse command line
   folderid = None
@@ -25,7 +27,7 @@ def main():
     allrecordings = pickle.load(input)
 
   if outfile:
-    of = open(outfile, "w")
+    of = codecs.open(outfile, "w", "utf-8")
         
   totaltime = 0
   for rec in allrecordings:
@@ -67,18 +69,30 @@ def main():
           kk = m.group(2)
           vvvv = m.group(3)
 
-      filename = rec["name"]
-      if kausi and jakso: filename += "_K" + kausi + "J" + jakso.zfill(2)
-      if not kausi and jakso: filename += "_J" + jakso.zfill(2) 
-      if pv: filename += "_" + vvvv + kk + pv
+      name = rec["name"]
+      m = re.search("^(Elokuva:|Kino:|#Subleffa:|Kino Klassikko:|E:|Kino Into:|AVA Elokuva:) (.+)", name);
+      if m:
+        name = m.group(2)
+      
+      filename = re.sub('\([\dSKT]+\)','',name)
+      if kausi and jakso:
+        filename += "S" + kausi.zfill(2) + "E" + jakso.zfill(2)
+      if not kausi and jakso: filename += "S01E" + jakso.zfill(2) 
+#      if pv: filename += "_" + vvvv + kk + pv
 
-      filename = re.sub(' ','_',filename)
-      filename = re.sub('_+','_',filename)
+#      filename = re.sub(' ','_',filename)
+#      filename = re.sub('_+','_',filename)
+
+      filename = re.sub(':', '-', filename)
+      filename = re.sub(' +$', '', filename)
 
       rec["filename"] = filename
 
       print str(rec["programId"]) + ": " + filename
+      print rec["description"]
+      
       if of: print >> of,  str(rec["programId"]) + ": " + filename
+
     except KeyError:
       continue
 
