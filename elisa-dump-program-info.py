@@ -1,5 +1,3 @@
-# Elisa Viihde API Python implementation usage demo
-
 import getopt, sys, getpass, elisaviihde, os, re
 import cPickle as pickle
 
