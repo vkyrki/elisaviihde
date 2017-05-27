@@ -7,7 +7,7 @@ def main():
     allfolders = pickle.load(input)
 
   for folder in allfolders:
-    print str(folder["id"]) + ": " + folder["name"]
+    print "%s: %s (%i recordings)" % (folder["id"], folder["name"], folder["recordingsCount"])
 
 if __name__ == "__main__":
   main()
