@@ -165,7 +165,7 @@ class elisaviihde:
       # Append rest of pages to list (50 recordings per page)
       maxpage = int(math.floor(folder["recordingsCount"] / 50))
       if maxpage > 0:
-        pages = range(0, maxpage)
+        pages = range(0, maxpage+1)
       else:
         pages = [0]
     else:
