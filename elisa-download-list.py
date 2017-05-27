@@ -1,6 +1,7 @@
 import getopt, sys, getpass, elisaviihde, os, re
 import cPickle as pickle
 from subprocess import call
+from time import sleep
 
 def main():
   # Parse command line args
@@ -54,10 +55,15 @@ def main():
   for text in input:  
 
     # Login
-    try:
-      elisa.login(username, password)
-    except Exception as exp:
-      print "ERROR: Login failed, check username and password"
+    for i in range(10):
+      try:
+        elisa.login(username, password)
+        break
+      except Exception as exp:
+        print "WARNING: Login failed, retrying after one minute"
+        sleep(60)
+    else:
+      print "ERROR: Login failed 10 times in row, exiting"
       sys.exit(1)
 
     match = re.match('^(\d+)\: (.+)',text)
@@ -82,12 +88,12 @@ def main():
 
     if re.match('Yle', prog["channel"]):
       subtitles = '-filter_complex "[0:v][0:s]overlay" '
-      print "From YLE channel " + prog["channel"] + ", burning subtitles"
+      print "From YLE channel " + prog["channel"] + ", overlaying subtitles"
       
     try:
       streamuri = elisa.getstreamuri(programId)
     except Exception as exp:
-      print "Stream not found, skipping"
+      print "WARNING: Stream not found, skipping"
       continue
 
     # input stream and codec options
@@ -96,18 +102,30 @@ def main():
     callstr = callstr + deinterlace + '-metadata description="' + prog["description"] + '" '
     # title metadata    
     callstr = callstr + '-metadata title="' + outfilename.decode("utf8") + '" '
-    # output filename (&type)
+    # output filename (&type/Matroska)
     callstr = callstr + '"' + outfilename.decode("utf8") + '.mkv"'
 
     #print callstr
     print "Starting encoding"
+
+    try: 
+      returncode = call(callstr, shell=True)
+    except KeyboardInterrupt as exp:
+      print "Interrupted from keyboard, exiting"
+      os.remove(outfilename.decode("utf8")+".mkv")
+      exit(0)
+      
+    if returncode:
+      print "WARNING: Possible ffmpeg failure, returncode " + str(returncode)
     
-    call(callstr, shell=True)
-
     # Close session (new one opened for each file)
-    elisa.close()
-
-  # All files downloaded
+    try:
+      elisa.close()
+    except Exception as exp:
+      print "Closing connection failed. Will continue anyway."
+      continue
+    
+    # All files downloaded
 
 if __name__ == "__main__":
   main()
