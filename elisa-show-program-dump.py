@@ -83,7 +83,9 @@ def main():
 #      filename = re.sub(' ','_',filename)
 #      filename = re.sub('_+','_',filename)
 
+      # Remove illegal characters ':' '?' and trailing spaces
       filename = re.sub(':', '-', filename)
+      filename = re.sub('?', '', filename)
       filename = re.sub(' +$', '', filename)
 
       rec["filename"] = filename
