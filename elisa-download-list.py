@@ -1,18 +1,18 @@
-import getopt, sys, getpass, elisaviihde, os, re
+import getopt, sys, getpass, elisaviihde, os, re, threading, subprocess
 import cPickle as pickle
 from subprocess import call
 from time import sleep
 
 class Downloader(object):
-  def __init__(self, command, outfilename)
+  def __init__(self, command, outfilename):
     self.command = command
     self.process = None
     self.outfilename = outfilename
 
   def run(self):
-    def download_thread(command):
-      process = subprocess.Popen(self.command, shell=True)
-      process.communicate()
+    def download_thread():
+      self.process = subprocess.Popen(self.command, shell=True)
+      self.process.communicate()
 
     thread = threading.Thread(target=download_thread)
     try: 
@@ -31,14 +31,16 @@ class Downloader(object):
         newsize = os.path.getsize(self.outfilename)
         if oldsize == newsize:
           print "ERROR: File size not growing, download seems to be stalled, aborting"
-          self.proccess.terminate()
+          self.process.terminate()
           thread.join()
           break
     except KeyboardInterrupt as exp:
       print "Interrupted from keyboard, exiting"
       self.process.terminate()
       thread.join()
-      os.remove(outfilename.decode("utf8")+".mkv")
+      print type(self.outfilename)
+      print type(self.outfilename.decode("utf8"))
+      os.remove(self.outfilename)
       exit(0)
 
 def login(elisa, username, password):
@@ -69,7 +71,7 @@ def main():
   listfile = None
   verbose = False
 
-  datadir = "/home/vkyrki/git/elisaviihde/"
+  datadir = "/home/kyrkiv1/git/elisaviihde/"
   
   # Read arg data
   for o, a in opts:
