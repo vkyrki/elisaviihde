@@ -3,6 +3,56 @@ import cPickle as pickle
 from subprocess import call
 from time import sleep
 
+class Downloader(object):
+  def __init__(self, command, outfilename)
+    self.command = command
+    self.process = None
+    self.outfilename = outfilename
+
+  def run(self):
+    def download_thread(command):
+      process = subprocess.Popen(self.command, shell=True)
+      process.communicate()
+
+    thread = threading.Thread(target=download_thread)
+    try: 
+      thread.start()
+
+      oldsize = 0
+      while True:
+        thread.join(60)
+
+        if not thread.is_alive():
+          returncode = self.process.returncode
+          if returncode:
+            print "WARNING: Possible ffmpeg failure, returncode " + str(returncode)
+          break
+
+        newsize = os.path.getsize(self.outfilename)
+        if oldsize == newsize:
+          print "ERROR: File size not growing, download seems to be stalled, aborting"
+          self.proccess.terminate()
+          thread.join()
+          break
+    except KeyboardInterrupt as exp:
+      print "Interrupted from keyboard, exiting"
+      self.process.terminate()
+      thread.join()
+      os.remove(outfilename.decode("utf8")+".mkv")
+      exit(0)
+
+def login(elisa, username, password):
+  for i in range(10):
+    try:
+      elisa.login(username, password)
+      break
+    except Exception as exp:
+      print "WARNING: Login failed, retrying after one minute"
+      sleep(60)
+  else:
+    print "ERROR: Login failed 10 times in row, exiting"
+    sys.exit(1)
+
 def main():
   # Parse command line args
   if len(sys.argv[1:]) < 4:
@@ -55,16 +105,7 @@ def main():
   for text in input:  
 
     # Login
-    for i in range(10):
-      try:
-        elisa.login(username, password)
-        break
-      except Exception as exp:
-        print "WARNING: Login failed, retrying after one minute"
-        sleep(60)
-    else:
-      print "ERROR: Login failed 10 times in row, exiting"
-      sys.exit(1)
+    login(elisa, username, password)
 
     match = re.match('^(\d+)\: (.+)',text)
   
@@ -107,17 +148,9 @@ def main():
 
     #print callstr
     print "Starting encoding"
-
-    try: 
-      returncode = call(callstr, shell=True)
-    except KeyboardInterrupt as exp:
-      print "Interrupted from keyboard, exiting"
-      os.remove(outfilename.decode("utf8")+".mkv")
-      exit(0)
+    downloader = Downloader(callstr, outfilename.decode("utf8") + ".mkv")
+    downloader.run()
       
-    if returncode:
-      print "WARNING: Possible ffmpeg failure, returncode " + str(returncode)
-    
     # Close session (new one opened for each file)
     try:
       elisa.close()
