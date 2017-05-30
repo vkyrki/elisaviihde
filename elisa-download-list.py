@@ -1,4 +1,4 @@
-import getopt, sys, getpass, elisaviihde, os, re, threading, subprocess
+import getopt, sys, getpass, elisaviihde, os, re, threading, subprocess, signal
 import cPickle as pickle
 from subprocess import call
 from time import sleep
@@ -11,7 +11,7 @@ class Downloader(object):
 
   def run(self):
     def download_thread():
-      self.process = subprocess.Popen(self.command, shell=True)
+      self.process = subprocess.Popen(self.command, shell=True, preexec_fn=os.setsid) # shell=True
       self.process.communicate()
 
     thread = threading.Thread(target=download_thread)
@@ -19,6 +19,7 @@ class Downloader(object):
       thread.start()
 
       oldsize = 0
+      # Check every 1 minute if download stalled, abort that file
       while True:
         thread.join(60)
 
@@ -28,15 +29,16 @@ class Downloader(object):
             print "WARNING: Possible ffmpeg failure, returncode " + str(returncode)
           break
 
-        newsize = os.path.getsize(self.outfilename)
+        newsize = os.path.getsize(self.outfilename.decode("utf8"))
         if oldsize == newsize:
           print "ERROR: File size not growing, download seems to be stalled, aborting"
-          self.process.terminate()
+          os.killpg(self.process.pid, signal.SIGTERM) # self.process.terminate()
           thread.join()
+          os.remove(self.outfilename.decode("utf8"))
           break
     except KeyboardInterrupt as exp:
       print "Interrupted from keyboard, exiting"
-      self.process.terminate()
+      os.killpg(self.process.pid, signal.SIGTERM) # self.process.terminate()
       thread.join()
       os.remove(self.outfilename.decode("utf8"))
       exit(0)
@@ -52,6 +54,7 @@ def login(elisa, username, password):
   else:
     print "ERROR: Login failed 10 times in row, exiting"
     sys.exit(1)
+
 
 def parse_args():
   # Parse command line args
@@ -80,6 +83,8 @@ def parse_args():
   if username=="" or not listfile:
     print "ERROR: username or programId missing"
     sys.exit(2)
+
+  return username, listfile
 
 def main():
 
@@ -162,7 +167,7 @@ def main():
       print "Closing connection failed. Will continue anyway."
       continue
     
-    # All files downloaded
+  # All files downloaded
 
 if __name__ == "__main__":
   main()
