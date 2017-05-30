@@ -38,9 +38,7 @@ class Downloader(object):
       print "Interrupted from keyboard, exiting"
       self.process.terminate()
       thread.join()
-      print type(self.outfilename)
-      print type(self.outfilename.decode("utf8"))
-      os.remove(self.outfilename)
+      os.remove(self.outfilename.decode("utf8"))
       exit(0)
 
 def login(elisa, username, password):
@@ -55,7 +53,7 @@ def login(elisa, username, password):
     print "ERROR: Login failed 10 times in row, exiting"
     sys.exit(1)
 
-def main():
+def parse_args():
   # Parse command line args
   if len(sys.argv[1:]) < 4:
     print "ERROR: Usage:", sys.argv[0], "[-u username -l listfile]" 
@@ -69,10 +67,7 @@ def main():
   # Init args
   username = ""
   listfile = None
-  verbose = False
 
-  datadir = "/home/kyrkiv1/git/elisaviihde/"
-  
   # Read arg data
   for o, a in opts:
     if o == "-l":
@@ -86,6 +81,13 @@ def main():
     print "ERROR: username or programId missing"
     sys.exit(2)
 
+def main():
+
+  username, listfile = parse_args()
+
+  verbose = False
+  datadir = "/home/kyrkiv1/git/elisaviihde/"
+  
   try:
     input = open(listfile,"r")
   except Exception as err:
